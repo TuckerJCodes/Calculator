@@ -4,59 +4,65 @@ document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll("button");
 
   let currentInput = "";
-  let previousInput = "";
-  let operator = null;
 
   buttons.forEach((button) => {
     button.addEventListener("click", () => {
       const value = button.textContent;
-      // console.log(value);
+      if (currentInput === "Error" || currentInput === "NaN") {
+        currentInput = "";
+      }
       if (button.classList.contains("clear")) {
+        // Clear the display
         currentInput = "";
-        previousInput = "";
-        operator = null;
         updateDisplay();
-      } else if (button.classList.contains("operator")) {
-        console.log(currentInput);
-        if (currentInput === "") return;
-        operator = value;
-        previousInput = currentInput;
-        currentInput = "";
       } else if (value === "=") {
-        console.log(currentInput, previousInput, operator);
-        if (currentInput === "" || previousInput === "" || operator === null)
-          return;
-        currentInput = calculate(previousInput, currentInput, operator);
-        previousInput = "";
-        operator = null;
-        updateDisplay();
+        // Evaluate the expression
+        try {
+          currentInput = evaluateExpression(currentInput);
+        } catch (error) {
+          currentInput = "Error";
+        }
+        updateDisplay(true); // Pass true to indicate this is a result
+      } else if (value === "√") {
+        // Handle square root
+        try {
+          currentInput = Math.sqrt(evaluateExpression(currentInput)).toString();
+        } catch (error) {
+          currentInput = "Error";
+        }
+        updateDisplay(true);
+      } else if (["sin", "cos", "tan"].includes(value)) {
+        // Handle trigonometric functions
+        try {
+          const radians = (Math.PI / 180) * evaluateExpression(currentInput); // Convert to radians
+          if (value === "sin") currentInput = Math.sin(radians).toString();
+          if (value === "cos") currentInput = Math.cos(radians).toString();
+          if (value === "tan") currentInput = Math.tan(radians).toString();
+        } catch (error) {
+          currentInput = "Error";
+        }
+        updateDisplay(true);
       } else {
+        // Append the button value to the current input
         currentInput += value;
         updateDisplay();
       }
     });
   });
 
-  function updateDisplay() {
+  function updateDisplay(isResult = false) {
     display.value = currentInput || "0";
+    if (isResult) {
+      display.scrollLeft = 0; // Scroll to the start for results
+    } else {
+      display.scrollLeft = display.scrollWidth; // Scroll to the end for input
+    }
   }
 
-  function calculate(a, b, operator) {
-    a = parseFloat(a);
-    b = parseFloat(b);
-    console.log("Calculating:", a, operator, b);
-
-    switch (operator) {
-      case "+":
-        return (a + b).toString();
-      case "-":
-        return (a - b).toString();
-      case "*":
-        return (a * b).toString();
-      case "/":
-        return b !== 0 ? (a / b).toString() : "Error";
-      default:
-        return "";
-    }
+  function evaluateExpression(expression) {
+    // Replace ^ with ** for exponentiation
+    expression = expression.replace(/\^/g, "**");
+    // Use Function constructor to safely evaluate the expression
+    return new Function(`return ${expression}`)();
   }
 });
